@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Information Security</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8" />
+    <style>
+      body {
+        margin-left: 10%;
+        margin-right: 5%;
+        margin-bottom: 10%;
+        background-color: rgb(200, 234, 250);
+      }
+
+      .selection {
+        font-size: 1.5em;
+      }
+      .help_div {
+        border: 5px solid gray;
+        padding: 5px;
+        background-color: darkslategray;
+        color: white;
+        font-weight: bold;
+        width: 100%;
+      }
+      .buttons {
+        font-size: 2em;
+        background-color: darkorange;
+        color: white;
+        padding: 7px;
+        font-family: "Times New Roman", Times, serif;
+        cursor:pointer;
+      }
+
+      textarea {
+        font-size: 1.5em;
+        width: 300px;
+        height: 100px;
+        font-family: "Arial", sans-serif;
+        font-size: 16px;
+        padding: 10px;
+        margin-right: 50px;
+      }
+
+      .hidden {
+        display: none;
+      }
+      .help {
+        font-size: 2em;
+        background-color: green;
+        color: white;
+        padding: 5px;
+      }
+		.members{
+		font-size:1em;
+    background-color:white;
+    font-weight:bold;
+		}
+    </style>
+  </head>
+
+  <body>
+    <table>
+      <tr>
+        <td>
+          <h1>Input Text</h1>
+        </td>
+        <td>
+          <h1>Output Text</h1>
+        </td>
+        <td>
+          <input type="button" id="help" value="Help" class="help" />
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <textarea id="input_text" rows="6" cols="30"></textarea>
+        </td>
+        <td><textarea id="output_text" rows="6" cols="30"></textarea></td>
+        <td rowspan="5">
+          <div class="help_div" id="help_div">
+            <h3>Instruction for cipher algorithm calcualtions</h3>
+            <ol>
+              <li>
+                <p>
+                  Insert the text to encrypt or decrypt on the input text area.
+                </p>
+              </li>
+              <li>
+                <p>choose one cipher algorithm from "select" element</p>
+              </li>
+              <li>click Encrypt or Decrypt button.</li>
+              <li>
+                <p>to input key</p>
+                <ul>
+                  <li>for ceaser cipher algorithm enter key number</li>
+                  <li>for playfair cipher algorithm enter key text</li>
+                  <li>
+                    for hill cipher algorithm
+                    <ol>
+                      <li>enter the size of key matrix</li>
+                      <li>
+                        enter elements of invertable matrix( a matrix that have
+                        Integer type inverse)
+                      </li>
+                      <li>click Encrypt or Decrypt button</li>
+                    </ol>
+                  </li>
+                </ul>
+              </li>
+              <li>see the result in output text area</li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <select class="selection" id="selection">
+            <option value="caeser">Caesar Cipher</option>
+            <option value="playfair">Playfair Cipher</option>
+            <option value="hill">Hill Cipher</option>
+          </select>
+        </td>
+        <td>
+          <input type="button" id="encrypt" class="buttons" value="Encrypt" />
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <h1 id="key">key</h1>
+        </td>
+        <td>
+          <input type="button" id="decrypt" class="buttons" value="Decrypt" />
+        </td>
+      </tr>
+    </table>
+    <div id="matrix" class="matrix"></div>
+    <script>
+    document.getElementById("help_div").style.display = "none";
+      document.getElementById("help").onmouseover = (e) => {
+        document.getElementById("help_div").style.display = "block";
+      };
+      document.getElementById("help").onmouseleave = (e) =>
+        (document.getElementById("help_div").style.display = "none");
+
+      //this is function is for both ceaser cipher encryption and decryption
+      function caesarCipher(plaintext, ceaserKey, isEncryption) {
+        // Ensure that the shift value is within the range [0, 25]
+        ceaserKey = ceaserKey % 26;
+        // Convert the string to an array of characters
+        let result = plaintext.split("");
+
+        // Iterate over each character in the array
+        for (let i = 0; i < result.length; i++) {
+          let char = result[i];
+
+          // Check if the character is a letter
+          if (char.match(/[a-z]/i)) {
+            // Determine the case (uppercase or lowercase)
+            let isUpperCase = char === char.toUpperCase();
+
+            // Convert the character to its ASCII code
+            let charCode = char.charCodeAt(0);
+
+            if (isEncryption)
+              // Apply the shift to the ASCII code
+              charCode =
+                ((charCode - (isUpperCase ? 65 : 97) + ceaserKey + 26) % 26) +
+                (isUpperCase ? 65 : 97);
+            else
+              charCode =
+                ((charCode - (isUpperCase ? 65 : 97) - ceaserKey + 26) % 26) +
+                (isUpperCase ? 65 : 97);
+
+            // Convert the ASCII code back to a character
+            char = String.fromCharCode(charCode);
+          }
+
+          // Update the array with the new character
+          result[i] = char;
+        }
+
+        // Convert the array back to a string
+        return result.join("");
+      }
+      //*******************************end of ceaser cipher algorithm**************************
+
+      //***************************Play fair algoritm****************************************
+
+      function Playfair(key) {
+
+        this.key = key.toUpperCase().replace(/[^A-Z]/g, "");
+        this.keyMatrix = this.generateKeyMatrix();
+      }
+
+      Playfair.prototype.generateKeyMatrix = function () {
+        const keyMatrix = Array.from({ length: 5 }, () => Array(5).fill(""));
+        const keyWithoutDuplicates = [...new Set(this.key.replace(/J/g, "I"))];
+        const alphabet = "ABCDEFGHIKLMNOPQRSTUVWXYZ";
+
+        let keyIndex = 0;
+        let alphabetIndex = 0;
+
+        for (let i = 0; i < 5; i++) {
+          for (let j = 0; j < 5; j++) {
+            if (keyIndex < keyWithoutDuplicates.length) {
+              keyMatrix[i][j] = keyWithoutDuplicates[keyIndex++];
+            } else {
+              while (
+                keyWithoutDuplicates.includes(alphabet[alphabetIndex]) &&
+                alphabetIndex < alphabet.length
+              ) {
+                alphabetIndex++;
+              }
+              keyMatrix[i][j] = alphabet[alphabetIndex++];
+            }
+          }
+        }
+
+        return keyMatrix;
+      };
+
+      Playfair.prototype.findPosition = function (char) {
+        for (let i = 0; i < 5; i++) {
+          for (let j = 0; j < 5; j++) {
+            if (this.keyMatrix[i][j] === char) {
+              return { row: i, col: j };
+            }
+          }
+        }
+      };
+
+      Playfair.prototype.encrypt = function (plainText) {
+        plainText = plainText
+          .toUpperCase()
+          .replace(/J/g, "I")
+          .replace(/[^A-Z]/g, "");
+
+        for (let i = 0; i < plainText.length - 1; i += 2) {
+          if (plainText.charAt(i) === plainText.charAt(i + 1)) {
+            plainText =
+              plainText.slice(0, i + 1) + "X" + plainText.slice(i + 1);
+          }
+        }
+
+        if (plainText.length % 2 !== 0) {
+          plainText += "X";
+        }
+
+        let cipherText = "";
+
+        for (let i = 0; i < plainText.length; i += 2) {
+          const char1 = plainText.charAt(i);
+          const char2 = plainText.charAt(i + 1);
+
+          const pos1 = this.findPosition(char1);
+          const pos2 = this.findPosition(char2);
+
+          let newChar1, newChar2;
+
+          if (pos1.row === pos2.row) {
+            newChar1 = this.keyMatrix[pos1.row][(pos1.col + 1) % 5];
+            newChar2 = this.keyMatrix[pos2.row][(pos2.col + 1) % 5];
+          } else if (pos1.col === pos2.col) {
+            newChar1 = this.keyMatrix[(pos1.row + 1) % 5][pos1.col];
+            newChar2 = this.keyMatrix[(pos2.row + 1) % 5][pos2.col];
+          } else {
+            newChar1 = this.keyMatrix[pos1.row][pos2.col];
+            newChar2 = this.keyMatrix[pos2.row][pos1.col];
+          }
+
+          cipherText += newChar1 + newChar2;
+        }
+
+        return cipherText;
+      };
+
+      Playfair.prototype.decrypt = function (cipherText) {
+        cipherText = cipherText
+          .toUpperCase()
+          .replace(/J/g, "I")
+          .replace(/[^A-Z]/g, "");
+
+        let plainText = "";
+
+        for (let i = 0; i < cipherText.length; i += 2) {
+          const char1 = cipherText.charAt(i);
+          const char2 = cipherText.charAt(i + 1);
+
+          const pos1 = this.findPosition(char1);
+          const pos2 = this.findPosition(char2);
+
+          let newChar1, newChar2;
+
+          if (pos1.row === pos2.row) {
+            newChar1 = this.keyMatrix[pos1.row][(pos1.col - 1 + 5) % 5];
+            newChar2 = this.keyMatrix[pos2.row][(pos2.col - 1 + 5) % 5];
+          } else if (pos1.col === pos2.col) {
+            newChar1 = this.keyMatrix[(pos1.row - 1 + 5) % 5][pos1.col];
+            newChar2 = this.keyMatrix[(pos2.row - 1 + 5) % 5][pos2.col];
+          } else {
+            newChar1 = this.keyMatrix[pos1.row][pos2.col];
+            newChar2 = this.keyMatrix[pos2.row][pos1.col];
+          }
+
+          plainText += newChar1 + newChar2;
+        }
+
+        return plainText;
+      };
+
+      //************************************HillCipher Algorithm********************
+
+      function HillCipher(hillText, keyMatrix) {
+        hillText = hillText.toLowerCase();
+        this.hillText = hillText.replace(/\s/g, ""); //remove the white spaces from input text
+        this.keyMatrix = keyMatrix;
+      }
+
+      // Function to remove white spaces, add 'x', and group text by n-size
+      HillCipher.prototype.groupText = function (n) {
+        // Add 'x' to make the text length a multiple of n
+        const remainder = this.hillText.length % n;
+        if (remainder !== 0) {
+          const padding = n - remainder;
+          this.hillText += "x".repeat(padding);
+        }
+
+        // Group the text into chunks of size n
+        const groupedText = [];
+        for (let i = 0; i < this.hillText.length; i += n) {
+          groupedText.push(this.hillText.slice(i, i + n));
+        }
+
+        return groupedText;
+      };
+
+      HillCipher.prototype.columnArray = function (word) {
+        let colarray = [];
+        wordChars = word.split("");
+        const letters = [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e",
+          "f",
+          "g",
+          "h",
+          "i",
+          "j",
+          "k",
+          "l",
+          "m",
+          "n",
+          "o",
+          "p",
+          "q",
+          "r",
+          "s",
+          "t",
+          "u",
+          "v",
+          "w",
+          "x",
+          "y",
+          "z",
+        ];
+        for (let i = 0; i < wordChars.length; i++) {
+          colarray.push(letters.indexOf(wordChars[i]));
+        }
+        return colarray;
+      };
+
+      HillCipher.prototype.fromNumber = function (numArray) {
+        let wordChars = [];
+        const letters = [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e",
+          "f",
+          "g",
+          "h",
+          "i",
+          "j",
+          "k",
+          "l",
+          "m",
+          "n",
+          "o",
+          "p",
+          "q",
+          "r",
+          "s",
+          "t",
+          "u",
+          "v",
+          "w",
+          "x",
+          "y",
+          "z",
+        ];
+        for (let i = 0; i < numArray.length; i++) {
+          wordChars.push(letters[numArray[i]]);
+        }
+        return wordChars.join("");
+      };
+      // Function to multiply a square matrix with a column matrix (vector)
+      HillCipher.prototype.multiply = function (matrix, columnMatrix) {
+        const n = matrix.length;
+
+        if (
+          !Array.isArray(matrix) ||
+          !Array.isArray(columnMatrix) ||
+          matrix[0].length !== n ||
+          columnMatrix.length !== n
+        ) {
+          throw new Error("Invalid matrix dimensions for multiplication.");
+        }
+
+        const result = [];
+        for (let i = 0; i < n; i++) {
+          let sum = 0;
+          for (let j = 0; j < n; j++) {
+            sum += matrix[i][j] * columnMatrix[j];
+          }
+          sum = Math.round(sum);
+          if (sum < 0) result[i] = ((sum % 26) + 26) % 26;
+          else result[i] = sum % 26;
+        }
+        return result;
+      };
+
+      // Function to calculate the determinant of a matrix
+      HillCipher.prototype.determinant = function (matrix) {
+        const n = matrix.length;
+
+        if (n === 1) {
+          return matrix[0][0];
+        }
+
+        let det = 0;
+
+        for (let j = 0; j < n; j++) {
+          const sign = j % 2 === 0 ? 1 : -1;
+          const minorMatrix = matrix
+            .slice(1)
+            .map((row) => row.filter((_, colIndex) => colIndex !== j));
+          det += sign * matrix[0][j] * this.determinant(minorMatrix);
+        }
+
+        return det;
+      };
+
+      // Function to calculate the cofactor matrix of a square matrix
+      HillCipher.prototype.cofactorMatrix = function (matrix) {
+        const n = matrix.length;
+        const cofactors = [];
+
+        for (let i = 0; i < n; i++) {
+          cofactors[i] = [];
+          for (let j = 0; j < n; j++) {
+            const sign = (i + j) % 2 === 0 ? 1 : -1;
+            const minorMatrix = matrix
+              .filter((_, rowIndex) => rowIndex !== i)
+              .map((row) => row.filter((_, colIndex) => colIndex !== j));
+            cofactors[i][j] = sign * this.determinant(minorMatrix);
+          }
+        }
+
+        return cofactors;
+      };
+
+      // Function to transpose a matrix
+      HillCipher.prototype.transpose = function (matrix) {
+        return matrix[0].map((col, i) => matrix.map((row) => row[i]));
+      };
+
+      // Function to calculate the inverse of a matrix
+      HillCipher.prototype.inverseMatrix = function (matrix) {
+        const det = this.determinant(matrix);
+        if (det === 0) {
+          throw new Error("Matrix is singular and does not have an inverse.");
+        }
+
+        const cofactors = this.cofactorMatrix(matrix);
+        const adjugate = this.transpose(cofactors);
+
+        // Calculate the inverse by dividing each element of the adjugate by the determinant
+        const inverse = adjugate.map((row) => row.map((entry) => entry / det));
+
+        return inverse;
+      };
+
+      HillCipher.prototype.Encrypt = function () {
+        let encryptedText = "";
+        let grouped_text = this.groupText(this.keyMatrix.length);
+        let column_array = [];
+        for (let i = 0; i < grouped_text.length; i++) {
+          column_array = this.columnArray(grouped_text[i]);
+          result_column = this.multiply(this.keyMatrix, column_array);
+          encryptedText += this.fromNumber(result_column);
+        }
+        return encryptedText;
+      };
+
+      HillCipher.prototype.Decrypt = function () {
+        let decryptedText = "";
+        let grouped_text = this.groupText(this.keyMatrix.length);
+        let column_array = [];
+        inverseKeyMatrix = this.inverseMatrix(this.keyMatrix);
+        for (let i = 0; i < grouped_text.length; i++) {
+          column_array = this.columnArray(grouped_text[i]);
+          result_column = this.multiply(inverseKeyMatrix, column_array);
+          decryptedText += this.fromNumber(result_column);
+        }
+        console.log(inverseKeyMatrix);
+        return decryptedText;
+      };
+
+      //*******************************End of HillCipher Algorithm******************************
+
+      let matrix = [];
+      function updateMatrix(event) {
+        const [i, j] = event.target.id.split("-").slice(1).map(Number);
+        matrix[i][j] = Number(event.target.value);
+      }
+
+      function createMatrixInput(size) {
+        matrix=[];
+        const matrixContainer = document.getElementById("matrix");
+        matrixContainer.innerHTML = ""; // Clear previous content
+
+        for (let i = 0; i < size; i++) {
+          const row = [];
+          for (let j = 0; j < size; j++) {
+            const input = document.createElement("input");
+            input.type = "number";
+            input.min = 0;
+            input.step = 1;
+            //input.value = 0;
+            input.id = `element-${i}-${j}`;
+            input.addEventListener("input", updateMatrix); // Add event listener
+            row.push(0);
+            matrixContainer.appendChild(input);
+          }
+          matrix.push(row);
+          matrixContainer.appendChild(document.createElement("br")); // Line break after each row
+        }
+      }
+
+      function updateMatrix(event) {
+        const [i, j] = event.target.id.split("-").slice(1).map(Number);
+        matrix[i][j] = Number(event.target.value);
+      }
+
+      var plaintext = document.getElementById("input_text");
+      var selectElement = document.getElementById("selection");
+      var outputText = document.getElementById("output_text");
+      var keylabel = document.getElementById("key");
+      selectElement.onclick=()=>{
+         // This function will be called when the selection changes
+         var selectedValue = selectElement.value;
+        var matrix = document.getElementById("matrix");
+        if (selectedValue == "hill") {
+          document.getElementById("key").innerHTML = "key matrix";
+          const size = parseInt(
+            prompt("Enter the size of the key matrix:", "2")
+          );
+
+          if (isNaN(size) || size <= 0) {
+            alert("Please enter a valid positive integer.");
+          } else {
+            createMatrixInput(size);
+          }
+          matrix.style.display = "block";
+        } else {
+          matrix.style.display = "none";
+        }
+      }
+      function handleEncrypt(e) {
+        try {
+          var selectedOption = selectElement.value;
+          if (selectedOption == "caeser") {
+            var ceaserKey = prompt("Please enter ceaser key");
+            var ceaserKey = parseInt(ceaserKey);
+            if (ceaserKey < 0) ceaserKey = ((ceaserKey % 26) + 26) % 26;
+            else ceaserKey = ceaserKey % 26;
+            var ciphertext = caesarCipher(plaintext.value, ceaserKey, true);
+            outputText.value = ciphertext;
+            key.innerHTML = "Caser key:" + ceaserKey;
+            outputText.readOnly = true;
+          } else if (selectedOption == "playfair") {
+            let playfairKey = prompt("Please enter playfair text key");
+            playfairKey  = playfairKey .toUpperCase().replace(/\s/g, "");
+            const playfairCipher = new Playfair(playfairKey);
+            var playfairText = playfairCipher.encrypt(plaintext.value);
+            outputText.value = playfairText;
+            key.innerHTML = "playfair key:" + playfairKey;
+            outputText.readOnly = true;
+          } else {
+            function convertStringsToIntegers(arr) {
+              // Check if the element is an array
+              if (Array.isArray(arr)) {
+                // If it's an array, recursively apply the function to each element
+                return arr.map(convertStringsToIntegers);
+              } else {
+                // If it's not an array, convert the string to an integer
+                return parseInt(arr, 10);
+              }
+            }
+
+            let intArray = convertStringsToIntegers(matrix);
+            console.log(intArray)
+            const hillCipher = new HillCipher(plaintext.value, intArray);
+            let encryptedText = hillCipher.Encrypt();
+            outputText.value = encryptedText;
+            outputText.readOnly = true;
+            intArray=[];
+          }
+        } catch (error) {
+          console.log(error);
+        }
+      }
+
+      function handleDecrypt(e) {
+        let intArray=[];
+        try {
+          const selectedOption = selectElement.value;
+          if (selectedOption == "caeser") {
+            let ceaserKey = prompt("Please enter ceaser key");
+            ceaserKey = parseInt(ceaserKey);
+            if (ceaserKey < 0) ceaserKey = ((ceaserKey % 26) + 26) % 26;
+            else ceaserKey = ceaserKey % 26;
+            let ciphertext = caesarCipher(plaintext.value, ceaserKey, false);
+            outputText.value = ciphertext;
+            outputText.readOnly = true;
+          } else if (selectedOption == "playfair") {
+            let playfairKey = prompt("Please enter playfair text key");
+            playfairKey  = playfairKey .toUpperCase().replace(/\s/g, "");
+            const playfairCipher = new Playfair(playfairKey);
+            const playfairText = playfairCipher.decrypt(plaintext.value);
+            outputText.value = playfairText;
+            key.innerHTML = "playfair key:" + playfairKey;
+            outputText.readOnly = true;
+          } else {
+            function convertStringsToIntegers(arr) {
+              // Check if the element is an array
+              if (Array.isArray(arr)) {
+                // If it's an array, recursively apply the function to each element
+                return arr.map(convertStringsToIntegers);
+              } else {
+                // If it's not an array, convert the string to an integer
+                return parseInt(arr, 10);
+              }
+            }
+
+             intArray = convertStringsToIntegers(matrix);
+
+            const hillCipher = new HillCipher(plaintext.value, intArray);
+            outputText.value = hillCipher.Decrypt();
+            outputText.readOnly = true;
+          }
+        } catch (error) {
+          console.log(error);
+        }
+      }
+      document.getElementById("encrypt").onclick = handleEncrypt;
+      document.getElementById("decrypt").onclick = handleDecrypt;
+    </script>
+  </body>
+</html>
